@@ -1,5 +1,6 @@
 import itertools
 from statistics import median
+from functions import find_locations
 
 
 #اين الگوريتمه چون خيلي طولاني بود نوشتنش کد نويسيش رو با کمک هوش مصنوعي انجام دادم اما طراحي خود الگوريتم کار خودمه
@@ -27,7 +28,8 @@ from statistics import median
 نتايج دقيقتر توي بنچمارک ميارم
 '''
 
-def tsp_divide_and_conquer(L, D):
+def tsp_divide_and_conquer( D):
+    L = find_locations(D)
     n = len(L)
     if n == 0:
         return []
@@ -75,7 +77,7 @@ def tsp_divide_and_conquer(L, D):
                 return [start, start]
 
     def recursive_solve(indices, start_idx, end_idx):
-        if len(indices) <= 6:
+        if len(indices) <= 7:
             return exact_path(indices, start_idx, end_idx)
 
         xs = [L[i][0] for i in indices]

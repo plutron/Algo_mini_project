@@ -1,47 +1,48 @@
 import time
-import functoins  # فرض می‌کنیم توابع کمکی در این ماژول هستند
+import functions
 from NN import nearestNeighbor
+from tspDivideAndCounqure import tsp_divide_and_conquer
 from coordinatesAlgorithms import xBasedAlgorithm
-from m import tsp_divide_and_conquer
-from a import tsp_divide_conquer_dist
+
+from heldKarp import held_karp_with_path
 
 def benchmark():
-    x = n = 0          # شمارنده بردها: n برای NN بهتر، x برای DC بهتر
+    x = n = 0
     total_nn_time = 0.0
     total_dc_time = 0.0
     total_ratio = 0.0
-    num_instances = 100
+    num_instances = 1
 
-    print(f"{'Inst':>5} | {'Size':>5} | {'NN dist':>10} | {'DC dist':>10} | {'Ratio(NN/DC)':>13} | {'NN time(s)':>10} | {'DC time(s)':>10} | {'Winner':>6} | {'Accuracy %':>10}")
+    print(f"{'Inst':>5} | {'Size':>5} | {'BT dist':>10} | {'DP dist':>10} | {'Ratio(BT/DP)':>13} | {'BT time(s)':>10} | {'DP time(s)':>10} | {'Winner':>6} | {'Accuracy %':>10}")
     print("-" * 110)
 
     for i in range(num_instances):
         # بارگذاری داده
-        l = functoins.GetDistancesFromFile(str(i) + '.txt')
+        l = functions.GetDistancesFromFile(str(i) + '.txt')
         size = len(l)  # تعداد شهرها
 
         # الگوریتم نزدیک‌ترین همسایه
         start = time.perf_counter()
-        a = christofides_tsp(l)
+        a = tsp_divide_and_conquer(l)
         nn_time = time.perf_counter() - start
-        nn_dist = functoins.totalDistance(a, l)
+        nn_dist = functions.totalDistance(a, l)
 
         # الگوریتم تقسیم و حل
-        li = functoins.find_locations(l)  # مختصات یا مکان‌ها
+        li = functions.find_locations(l)  # مختصات یا مکان‌ها
         start = time.perf_counter()
-        b = tsp_divide_and_conquer(li,l)
+        b = tsp_divide_and_conquer(l)
         dc_time = time.perf_counter() - start
-        dc_dist = functoins.totalDistance(b, l)
+        dc_dist = functions.totalDistance(b, l)
 
         # نسبت مسافت‌ها (NN به DC)
         ratio = nn_dist / dc_dist
 
         # برنده
         if nn_dist < dc_dist:
-            winner = "NN"
+            winner = "BT"
             n += 1
         elif dc_dist < nn_dist:
-            winner = "DC"
+            winner = "DP"
             x += 1
         else:
             winner = "Tie"
@@ -63,17 +64,17 @@ def benchmark():
     print("\n" + "=" * 110)
     print("خلاصه بنچمارک:")
     print(f"  تعداد نمونه‌ها: {num_instances}")
-    print(f"  بردهای NN: {n}")
-    print(f"  بردهای DC: {x}")
+    print(f"  بردهای BT: {n}")
+    print(f"  بردهای DP: {x}")
     ties = num_instances - n - x
     print(f"  تساوی‌ها: {ties}")
-    print(f"  درصد پیروزی NN: {n/num_instances*100:.2f}%")
-    print(f"  درصد پیروزی DC: {x/num_instances*100:.2f}%")
-    print(f"  میانگین نسبت (NN/DC): {total_ratio/num_instances:.4f}")
-    print(f"  میانگین زمان NN: {total_nn_time/num_instances:.6f} ثانیه")
-    print(f"  میانگین زمان DC: {total_dc_time/num_instances:.6f} ثانیه")
-    print(f"  کل زمان NN: {total_nn_time:.4f} ثانیه")
-    print(f"  کل زمان DC: {total_dc_time:.4f} ثانیه")
+    print(f"  درصد پیروزی BT: {n/num_instances*100:.2f}%")
+    print(f"  درصد پیروزی DP: {x/num_instances*100:.2f}%")
+    print(f"  میانگین نسبت (BT/DP): {total_ratio/num_instances:.4f}")
+    print(f"  میانگین زمان BT: {total_nn_time/num_instances:.6f} ثانیه")
+    print(f"  میانگین زمان DP: {total_dc_time/num_instances:.6f} ثانیه")
+    print(f"  کل زمان BT: {total_nn_time:.4f} ثانیه")
+    print(f"  کل زمان DP: {total_dc_time:.4f} ثانیه")
 
 if __name__ == "__main__":
     benchmark()
