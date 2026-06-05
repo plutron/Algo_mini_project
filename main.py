@@ -1,80 +1,117 @@
-import time
-import functions
+from time import perf_counter
+
+from functions import GetDistancesFromFile, totalDistance
+from bruteForce import bruteForceForTSP, bruteForceForTSPWithDP
+from coordinatesAlgorithms import xBasedAlgorithm
 from NN import nearestNeighbor
 from tspDivideAndCounqure import tsp_divide_and_conquer
-from coordinatesAlgorithms import xBasedAlgorithm
-
 from heldKarp import held_karp_with_path
+from makeRandomTestCases import makeTestCase
 
-def benchmark():
-    x = n = 0
-    total_nn_time = 0.0
-    total_dc_time = 0.0
-    total_ratio = 0.0
-    num_instances = 1
+NUMBER_OF_FILES = 100
+MATRIX_SIZE = 9
 
-    print(f"{'Inst':>5} | {'Size':>5} | {'BT dist':>10} | {'DP dist':>10} | {'Ratio(BT/DP)':>13} | {'BT time(s)':>10} | {'DP time(s)':>10} | {'Winner':>6} | {'Accuracy %':>10}")
-    print("-" * 110)
+makeTestCase(MATRIX_SIZE, NUMBER_OF_FILES)
 
-    for i in range(num_instances):
-        # بارگذاری داده
-        l = functions.GetDistancesFromFile(str(i) + '.txt')
-        size = len(l)  # تعداد شهرها
+algorithms = {
+    "NN": {
+        "func": nearestNeighbor,
+        "limit": float("inf")
+    },
+    "BF": {
+        "func": bruteForceForTSP,
+        "limit": 9
+    },
+    "DP": {
+        "func": bruteForceForTSPWithDP,
+        "limit": 10
+    },
+    "HK": {
+        "func": held_karp_with_path,
+        "limit": 18
+    },
+    "XB": {
+        "func": xBasedAlgorithm,
+        "limit": float("inf")
+    },
+    "DC": {
+        "func": tsp_divide_and_conquer,
+        "limit": float("inf")
+    }
+}
 
-        # الگوریتم نزدیک‌ترین همسایه
-        start = time.perf_counter()
-        a = tsp_divide_and_conquer(l)
-        nn_time = time.perf_counter() - start
-        nn_dist = functions.totalDistance(a, l)
+results = {
+    name: {
+        "total_time": 0.0,
+        "total_score": 0
+    }
+    for name in algorithms
+}
 
-        # الگوریتم تقسیم و حل
-        li = functions.find_locations(l)  # مختصات یا مکان‌ها
-        start = time.perf_counter()
-        b = tsp_divide_and_conquer(l)
-        dc_time = time.perf_counter() - start
-        dc_dist = functions.totalDistance(b, l)
 
-        # نسبت مسافت‌ها (NN به DC)
-        ratio = nn_dist / dc_dist
+def run_algorithm(name, algorithm, matrix):
+    """
+    Runs an algorithm and returns:
+    (time_taken, score)
+    """
 
-        # برنده
-        if nn_dist < dc_dist:
-            winner = "BT"
-            n += 1
-        elif dc_dist < nn_dist:
-            winner = "DP"
-            x += 1
-        else:
-            winner = "Tie"
+    if MATRIX_SIZE > algorithm["limit"]:
+        return None, None
 
-        # درصد دقت نسبی: (مسافت بهتر / مسافت بدتر) * 100
-        better = min(nn_dist, dc_dist)
-        worse = max(nn_dist, dc_dist)
-        accuracy_pct = (better / worse) * 100 if worse != 0 else 100.0
+    start = perf_counter()
 
-        # ذخیره مجموع‌ها برای میانگین‌های نهایی
-        total_nn_time += nn_time
-        total_dc_time += dc_time
-        total_ratio += ratio
+    path = algorithm["func"](matrix)
 
-        # چاپ ردیف
-        print(f"{i:5d} | {size:5d} | {nn_dist:10.2f} | {dc_dist:10.2f} | {ratio:13.4f} | {nn_time:10.6f} | {dc_time:10.6f} | {winner:>6} | {accuracy_pct:9.2f}%")
+    elapsed = perf_counter() - start
 
-    # خلاصه نهایی
-    print("\n" + "=" * 110)
-    print("خلاصه بنچمارک:")
-    print(f"  تعداد نمونه‌ها: {num_instances}")
-    print(f"  بردهای BT: {n}")
-    print(f"  بردهای DP: {x}")
-    ties = num_instances - n - x
-    print(f"  تساوی‌ها: {ties}")
-    print(f"  درصد پیروزی BT: {n/num_instances*100:.2f}%")
-    print(f"  درصد پیروزی DP: {x/num_instances*100:.2f}%")
-    print(f"  میانگین نسبت (BT/DP): {total_ratio/num_instances:.4f}")
-    print(f"  میانگین زمان BT: {total_nn_time/num_instances:.6f} ثانیه")
-    print(f"  میانگین زمان DP: {total_dc_time/num_instances:.6f} ثانیه")
-    print(f"  کل زمان BT: {total_nn_time:.4f} ثانیه")
-    print(f"  کل زمان DP: {total_dc_time:.4f} ثانیه")
+    score = totalDistance(path, matrix)
 
-if __name__ == "__main__":
-    benchmark()
+    return elapsed, score
+
+header = []
+
+for name in algorithms:
+    header.append(f"{name}_TIME")
+    header.append(f"{name}_SCORE")
+
+print(" | ".join(f"{h:^12}" for h in header))
+
+for file_index in range(NUMBER_OF_FILES):
+
+    matrix = GetDistancesFromFile(f"{file_index}.txt")
+
+    row_output = []
+
+    for name, algorithm in algorithms.items():
+
+        elapsed, score = run_algorithm(name, algorithm, matrix)
+
+        if elapsed is None:
+            row_output.extend(["SKIPPED", "SKIPPED"])
+            continue
+
+        results[name]["total_time"] += elapsed
+        results[name]["total_score"] += score
+
+        row_output.extend([
+            f"{elapsed:.6f}",
+            str(score)
+        ])
+
+    print(" | ".join(f"{x:^12}" for x in row_output))
+
+
+print("\n========== TOTAL RESULTS ==========\n")
+
+for name, data in results.items():
+
+    avg_time = data["total_time"] / NUMBER_OF_FILES
+    avg_score = data["total_score"] / NUMBER_OF_FILES
+
+    print(
+        f"{name}: "
+        f"TOTAL TIME = {data['total_time']:.6f}s | "
+        f"AVG TIME = {avg_time:.6f}s | "
+        f"TOTAL SCORE = {data['total_score']} | "
+        f"AVG SCORE = {avg_score:.2f}"
+    )
